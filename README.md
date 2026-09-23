@@ -38,13 +38,13 @@ Antes da orquestração automatizada, subíamos a infraestrutura comando por com
 
 A evolução natural na engenharia de sistemas é não dizer *como* o computador deve fazer (passo a passo), mas sim declarar *o que* queremos. Chamamos isso de **Infraestrutura como Código (IaC)**.
 
-* **O Padrão Atual:** O Docker Compose V2 substitui o antigo `docker-compose` (escrito em Python) por uma integração nativa (`docker compose`, sem hífen, escrito em Go).
-* **Interpretação Dinâmica:** No padrão atual, não é mais necessário declarar a versão (`version: '3'`) no topo do arquivo YAML; o Docker moderno infere as features dinamicamente[cite: 2].
+Para garantir a máxima compatibilidade com diversos laboratórios e servidores (incluindo o nosso ambiente de testes), utilizaremos o comando tradicional `docker-compose` (com hífen) e o arquivo padrão `docker-compose.yml` declarando a versão da sintaxe.
 
 ## 4. Anatomia do Compose YAML
 
-O arquivo `compose.yaml` é a "planta baixa" da nossa infraestrutura. Ele define os "prédios" (serviços) que vamos construir[cite: 2]:
+O arquivo `docker-compose.yml` é a "planta baixa" da nossa infraestrutura. Ele define os "prédios" (serviços) que vamos construir:
 
+* `version:` Define a versão da sintaxe do arquivo (utilizaremos a `3.8` para garantir suporte a *healthchecks* avançados).
 * `build:` O tijolo. Constrói a imagem localmente a partir de um arquivo `Dockerfile`[cite: 2].
 * `image:` O pré-fabricado. Baixa uma imagem pronta diretamente do Docker Hub[cite: 2].
 * `ports:` O túnel. Mapeia a porta pública do sistema hospedeiro para a porta privada do contêiner[cite: 2].
@@ -59,8 +59,8 @@ O arquivo `compose.yaml` é a "planta baixa" da nossa infraestrutura. Ele define
 
 Para o laboratório de hoje, usaremos uma solução sem fricção: o **Killercoda**[cite: 2].
 
-* Fornece uma VM Ubuntu 24.04 nativa com sessão de 60 minutos ininterruptos[cite: 2].
-* O Docker Engine e o plugin Compose V2 já vêm instalados.
+* Fornece uma VM Ubuntu nativa com sessão de 60 minutos ininterruptos[cite: 2].
+* O Docker Engine já vem instalado e pronto para uso.
 * **⚠️ Aviso Crítico:** Nunca pressione `F5` ou recarregue a aba do navegador durante o laboratório. Isso destrói a máquina virtual instantaneamente[cite: 2].
 
 👉 **Link de Acesso:** [Ubuntu Playground no Killercoda](https://killercoda.com/playgrounds/scenario/ubuntu)
@@ -73,8 +73,184 @@ Nosso projeto prático consiste em um Frontend Web (API em Python/Flask) e um Ba
 
 ### Passo 1: Preparando o Terreno
 
-No terminal do Killercoda, verifique se o Compose V2 está rodando e crie a pasta do projeto:
+No terminal do Killercoda, verifique se o Compose está rodando e crie a pasta do projeto:
 
 ```bash
-docker compose version
+docker-compose --version
 mkdir ~/laboratorio-compose && cd ~/laboratorio-compose
+```
+> 💡 **Dica de Produtividade:** Copie os blocos de código abaixo, cole inteiros no terminal e pressione `ENTER`. O comando `cat << 'EOF'` criará os arquivos automaticamente sem precisarmos abrir editores de texto no terminal.
+
+### Passo 2: O Código da Aplicação (`app.py`)
+
+Antes de executarmos o código, é fundamental entender o comportamento dessa aplicação. Esta é uma API Web construída com o microframework Flask em Python. 
+O grande diferencial aqui é a **resiliência da conexão**: em ambientes distribuídos, o banco de dados pode demorar alguns segundos a mais para inicializar. Por isso, implementamos a função `get_hit_count()`, que possui um laço de repetição (`while True`) com um limite de tentativas (`retries`). Se o banco não estiver pronto, a aplicação aguarda meio segundo e tenta de novo, evitando que o contêiner falhe (crash) logo na inicialização. A conexão com o banco é feita dinamicamente através da variável de ambiente `REDIS_HOST`[cite: 1].
+
+```bash
+cat << 'EOF' > app.py
+import time
+import os
+import redis
+from flask import Flask
+
+app = Flask(__name__)
+redis_host = os.environ.get('REDIS_HOST', 'redis')
+cache = redis.Redis(host=redis_host, port=6379)
+
+def get_hit_count():
+    retries = 5
+    while True:
+        try:
+            return cache.incr('hits')
+        except redis.exceptions.ConnectionError as exc:
+            if retries == 0:
+                raise exc
+            retries -= 1
+            time.sleep(0.5)
+
+@app.route('/')
+def get_index():
+    count = get_hit_count()
+    return f'<h1>Laboratório Docker Compose Multi-Serviços</h1><p>Esta página foi visualizada <strong>{count}</strong> vezes.</p>'
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+EOF
+```
+
+### Passo 3: A Receita do Contêiner (`Dockerfile`)
+
+O `Dockerfile` é a "receita de bolo" que diz ao motor do Docker como empacotar nossa aplicação. 
+Vamos destrinchar cada instrução:
+* `FROM python:3.10-alpine`: Utiliza uma versão minimalista do Linux (Alpine) com Python 3.10, resultando em uma imagem final extremamente leve e segura.
+* `WORKDIR /code`: Define o diretório de trabalho padrão dentro do contêiner.
+* `RUN pip install...`: Executa a instalação das dependências (Flask e Redis) durante a fase de construção (build).
+* `COPY app.py .`: Move o nosso código fonte do sistema hospedeiro para dentro do contêiner.
+* `CMD`: Especifica o comando padrão que manterá o contêiner em execução (rodando o servidor Python).
+
+```bash
+cat << 'EOF' > Dockerfile
+FROM python:3.10-alpine
+WORKDIR /code
+RUN pip install flask redis
+COPY app.py .
+EXPOSE 5000
+CMD ["python", "app.py"]
+EOF
+```
+
+### Passo 4: O Maestro (`docker-compose.yml`)
+
+Este é o coração da orquestração e o principal objetivo da nossa aula. Em vez de rodarmos múltiplos comandos imperativos propensos a falhas manuais, declaramos o estado desejado da nossa infraestrutura[cite: 2].
+Pontos cruciais deste manifesto:
+1. **Rede Interna (`frontend-net`)**: Garante que o serviço `web` e o banco `redis` consigam se comunicar de forma isolada do mundo externo.
+2. **Dependência Inteligente (`depends_on` e `healthcheck`)**: O serviço `web` só será iniciado quando o Redis estiver com o status "saudável". O próprio orquestrador fará um ping no banco a cada 5 segundos; ao receber a resposta afirmativa, ele libera o início da aplicação web[cite: 1, 2].
+3. **Persistência (`volumes`)**: O `redis-data` ancora os dados do banco de dados no disco físico da máquina hospedeira, garantindo que o ciclo de vida efêmero do contêiner não destrua nossas informações em caso de reinicialização.
+
+```bash
+cat << 'EOF' > docker-compose.yml
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - REDIS_HOST=redis
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - frontend-net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - frontend-net
+    volumes:
+      - redis-data:/data
+
+networks:
+  frontend-net:
+    driver: bridge
+
+volumes:
+  redis-data:
+EOF
+```
+
+### Passo 5: Fazendo a Mágica Acontecer
+
+Agora que temos a infraestrutura descrita como código (IaC), podemos levantar todo o ambiente com um único comando declarativo. A *flag* `-d` (detached mode) é utilizada para rodar o processo em segundo plano, liberando o nosso terminal para continuar operando[cite: 1, 2].
+
+```bash
+docker-compose up -d
+```
+
+Para inspecionar o comportamento da arquitetura em tempo real e visualizar os logs combinados do Python e do Redis, execute:
+
+```bash
+docker-compose logs -f
+```
+*(Para sair da tela de logs em tempo real sem desligar os contêineres, pressione `Ctrl + C`)*.
+
+**Testando a Aplicação:**
+No terminal, faça requisições simulando acessos de usuários para ver a contagem subir iterativamente[cite: 1]:
+```bash
+curl http://localhost:5000
+```
+Para ver a interface no navegador de forma gráfica pelo Killercoda, clique na opção **Traffic / Ports** localizada no menu superior, digite a porta `5000` e acesse a página[cite: 1].
+
+### Passo 6: O Teste de Resiliência (Simulação de Caos)
+
+Uma infraestrutura madura deve ser capaz de se recuperar de falhas. E se o nosso banco de dados sofrer um *crash* ou precisar ser reiniciado? Vamos perder o histórico de contagens de acessos[cite: 1]? Vamos colocar isso à prova:
+
+1. Vamos forçar a reinicialização apenas do contêiner do banco de dados:
+```bash
+docker-compose restart redis
+```
+2. Acesse a aplicação novamente pelo terminal ou atualize a página no navegador:
+```bash
+curl http://localhost:5000
+```
+**Resultado Prático:** O contador continuará exatamente de onde parou! Isso comprova na prática o conceito de **desacoplamento**: a execução (que é volátil e efêmera) foi separada do armazenamento de estado (que está ancorado e seguro no volume `redis-data` do hospedeiro)[cite: 1].
+
+### Passo 7: Demolição Limpa
+
+A engenharia de software eficiente também envolve a gestão correta de recursos. Deixar contêineres e redes fantasmas rodando consome memória e processamento do servidor de forma desnecessária[cite: 2]. A flag `-v` é essencial aqui para garantir que os volumes também sejam destruídos ao encerrarmos o laboratório[cite: 2].
+
+```bash
+docker-compose down -v
+```
+
+---
+
+## 7. O Próximo Nível: Escala e Kubernetes
+
+Onde o Compose termina e a escala massiva começa[cite: 2]?
+
+* **Docker Compose (Single-Host):** É a ferramenta definitiva para o ciclo de desenvolvimento local, fluxos ágeis de automação de testes (CI/CD) e implantações pontuais em servidores únicos (como arquiteturas enxutas em nuvem)[cite: 2].
+* **Orquestradores de Cluster (Kubernetes / Swarm):** Foram projetados para ambientes de produção massivos, distribuindo a carga entre múltiplos servidores de hardware simultâneos, garantindo balanceamento de carga global e alta disponibilidade corporativa (*auto-healing*)[cite: 2].
+
+A mentalidade declarativa (IaC) e as abstrações de redes, dependências e volumes que praticamos hoje com o Compose são exatamente a mesma base arquitetural exigida para dominar tecnologias como o Kubernetes no seu futuro profissional[cite: 2].
+
+---
+
+## 8. Cheat Sheet (Comandos Úteis)
+
+| Comando | Descrição |
+| :--- | :--- |
+| `docker-compose up -d` | Sobe todos os serviços em segundo plano (*detached*). |
+| `docker-compose ps` | Lista os contêineres ativos do projeto e seus status. |
+| `docker-compose logs -f` | Exibe e acompanha os logs consolidados em tempo real. |
+| `docker-compose restart <servico>`| Reinicia um serviço específico (ex: `redis`). |
+| `docker-compose down` | Para e remove os contêineres e a rede. |
+| `docker-compose down -v` | Para e remove contêineres, rede e **volumes de dados**. |
