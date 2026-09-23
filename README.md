@@ -1,24 +1,49 @@
 # 🐳 Docker e Docker Compose: Do Caos à Orquestração em 45 Minutos
 
-Bem-vindo(a) ao repositório oficial da nossa aula prática sobre orquestração de contêineres! 
+Bem-vindo(a) ao repositório oficial da nossa aula prática sobre orquestração de contêineres!
 
 Este material foi desenhado para levar você dos conceitos fundamentais de isolamento de software até a implantação de uma infraestrutura multi-serviços completa utilizando **Docker Compose**. Tudo isso em 45 minutos, rodando 100% na nuvem, sem precisar instalar nada na sua máquina.
+
+> Esta versão do guia foi ampliada com mais contexto teórico, comparações práticas, boas práticas de mercado e uma seção de perguntas frequentes — material de sobra para preencher os 45 minutos com segurança, mesmo que a turma tenha muitas dúvidas pelo caminho. **O laboratório prático (Seção 8) permanece exatamente como testado e validado — nada nele foi alterado.**
 
 ---
 
 ## 📚 Sumário
-1. [Fundamentos: O Fim do "Na minha máquina funciona"](#1-fundamentos-o-fim-do-na-minha-máquina-funciona)
-2. [O Problema: Gerenciamento Imperativo](#2-o-problema-gerenciamento-imperativo)
-3. [A Solução: Docker Compose e IaC](#3-a-solução-docker-compose-e-iac)
-4. [Anatomia do Compose YAML](#4-anatomia-do-compose-yaml)
-5. [Ambiente Prático: Killercoda](#5-ambiente-prático-killercoda)
-6. [Laboratório Passo a Passo (Hands-on)](#6-laboratório-passo-a-passo-hands-on)
-7. [O Próximo Nível: Escala e Kubernetes](#7-o-próximo-nível-escala-e-kubernetes)
-8. [Cheat Sheet (Comandos Úteis)](#8-cheat-sheet-comandos-úteis)
+1. [Roteiro Sugerido da Aula (Guia do Instrutor)](#1-roteiro-sugerido-da-aula-guia-do-instrutor)
+2. [Fundamentos: O Fim do "Na minha máquina funciona"](#2-fundamentos-o-fim-do-na-minha-máquina-funciona)
+3. [Containers vs. Máquinas Virtuais: Por Baixo do Capô](#3-containers-vs-máquinas-virtuais-por-baixo-do-capô)
+4. [O Problema: Gerenciamento Imperativo](#4-o-problema-gerenciamento-imperativo)
+5. [A Solução: Docker Compose e Infraestrutura como Código (IaC)](#5-a-solução-docker-compose-e-infraestrutura-como-código-iac)
+6. [Anatomia do Compose YAML](#6-anatomia-do-compose-yaml)
+7. [Ambiente Prático: Killercoda](#7-ambiente-prático-killercoda)
+8. [Laboratório Passo a Passo (Hands-on)](#8-laboratório-passo-a-passo-hands-on)
+9. [Boas Práticas e Erros Comuns](#9-boas-práticas-e-erros-comuns)
+10. [O Próximo Nível: Escala e Kubernetes](#10-o-próximo-nível-escala-e-kubernetes)
+11. [Perguntas Frequentes (FAQ)](#11-perguntas-frequentes-faq)
+12. [Cheat Sheet (Comandos Úteis)](#12-cheat-sheet-comandos-úteis)
 
 ---
 
-## 1. Fundamentos: O Fim do "Na minha máquina funciona"
+## 1. Roteiro Sugerido da Aula (Guia do Instrutor)
+
+Esta seção é só para você, instrutor(a) — não precisa ser mostrada aos alunos. É um guia de ritmo para garantir que os 45 minutos rendam sem correria no fim.
+
+| Bloco | Tempo | O que fazer | Seção de apoio |
+| :--- | :--- | :--- | :--- |
+| 🎬 Abertura | 0–3 min | Contextualize o problema: "quantos de vocês já ouviram *'na minha máquina funciona'*?" Apresente os objetivos da aula. | Seção 2 |
+| 🧱 Fundamentos | 3–10 min | Containers vs. VMs, arquitetura do Docker, imagens e camadas. Não precisa se aprofundar demais — é só terreno comum. | Seções 2–3 |
+| 😩 O Problema | 10–15 min | Mostre (ou digite ao vivo) os comandos imperativos necessários para subir a mesma aplicação sem Compose. É o momento de gerar empatia com a dor. | Seção 4 |
+| 🧩 A Solução | 15–22 min | Introduza IaC, o Docker Compose e a anatomia do `docker-compose.yml`. | Seções 5–6 |
+| 💻 Mão na Massa | 22–40 min | Todos abrem o Killercoda e seguem o laboratório passo a passo. Circule pela sala (ou pelo chat) tirando dúvidas. | Seções 7–8 |
+| 🚀 Fechamento | 40–45 min | Boas práticas rápidas, panorama de Kubernetes/Swarm e uma rodada de perguntas. | Seções 9–11 |
+
+> 💡 **Dica de ritmo:** se a turma for mais júnior, reduza a parte de "Fundamentos" pela metade e invista o tempo extra no laboratório — é fazendo que o conceito de orquestração realmente gruda. Se a turma já tiver experiência com Docker isolado (sem Compose), pule direto para a Seção 4.
+
+> ⏱️ **Se sobrar tempo:** as Seções 9 (Boas Práticas) e 10 (Kubernetes) têm profundidade suficiente para preencher 10-15 minutos extras sem improviso — e a Seção 11 (FAQ) é ótima para uma rodada final de perguntas guiadas, caso a turma esteja tímida.
+
+---
+
+## 2. Fundamentos: O Fim do "Na minha máquina funciona"
 
 No desenvolvimento de software tradicional, configurar laboratórios ou servidores do zero exige instalar dependências complexas. Se você já precisou subir máquinas virtuais completas (com sistemas operacionais inteiros) apenas para rodar um servidor web ou um banco de dados, sabe que o processo consome muito disco, memória e tempo de configuração.
 
@@ -26,7 +51,54 @@ No desenvolvimento de software tradicional, configurar laboratórios ou servidor
 
 Diferente de uma Máquina Virtual que emula o hardware e carrega um sistema operacional pesado (Guest OS), os contêineres compartilham o *kernel* do sistema hospedeiro, inicializando em milissegundos e consumindo uma fração dos recursos.
 
-## 2. O Problema: Gerenciamento Imperativo
+### 🚢 Uma analogia que ajuda
+
+Pense no transporte marítimo antes e depois do contêiner de aço padronizado. Antes, cada tipo de carga exigia um método de embarque diferente — sacas eram empilhadas manualmente, máquinas eram amarradas com cordas, e cada porto tinha seu próprio jeito de lidar com cada tipo de carga. O contêiner padronizado resolveu isso: não importa o que está dentro, ele tem o mesmo tamanho e os mesmos encaixes, e qualquer guindaste do mundo sabe como movê-lo.
+
+O Docker faz exatamente isso com software: não importa se sua aplicação é Python, Node.js ou Java — ela vira uma "caixa padronizada" que roda da mesma forma em qualquer máquina que tenha o Docker instalado.
+
+### 🏗️ Arquitetura do Docker: quem fala com quem
+
+O Docker segue um modelo cliente-servidor, mesmo quando tudo roda na mesma máquina:
+
+* **Docker Client (`docker`)**: o comando que você digita no terminal.
+* **Docker Daemon (`dockerd`)**: o processo em segundo plano que efetivamente cria, executa e gerencia os contêineres. O client conversa com o daemon através de uma API REST.
+* **Docker Registry (ex.: Docker Hub)**: o "repositório" de onde as imagens prontas são baixadas — é de lá que virá o `redis:7-alpine` que usaremos no laboratório.
+
+### 📦 Imagem vs. Container: a confusão mais comum
+
+Esses dois termos costumam ser usados como sinônimos, mas não são a mesma coisa:
+
+* **Imagem**: um template somente-leitura e imutável, feito de camadas empilhadas (cada instrução do `Dockerfile` — `FROM`, `RUN`, `COPY` — gera uma camada nova). É a "planta" do que vai rodar.
+* **Container**: uma **instância em execução** de uma imagem, com uma fina camada gravável adicionada por cima. É efêmero: se você apagar o container, essa camada gravável some junto — daí a necessidade de `volumes` para dados que precisam sobreviver (voltamos a isso na Seção 6).
+
+Essa distinção entre "o que é permanente" (imagem, volume) e "o que é descartável" (container) é a base conceitual de tudo o que vamos construir hoje.
+
+---
+
+## 3. Containers vs. Máquinas Virtuais: Por Baixo do Capô
+
+A pergunta que sempre aparece nesse ponto da aula é: "isso não é só uma VM mais rápida?" Não — a diferença é estrutural, não só de performance.
+
+| Característica | Máquina Virtual | Container |
+| :--- | :--- | :--- |
+| Isolamento | Hypervisor emula hardware completo | Compartilha o kernel do host (namespaces + cgroups) |
+| Sistema operacional | Guest OS completo por VM | Nenhum — usa o kernel do hospedeiro |
+| Tamanho típico | Gigabytes | Megabytes |
+| Tempo de boot | Minutos | Milissegundos a segundos |
+| Densidade por host | Poucas dezenas | Centenas |
+| Caso de uso ideal | Isolar kernels/SOs diferentes | Empacotar e distribuir aplicações |
+
+Dois mecanismos do kernel Linux tornam isso possível, e vale citá-los em aula:
+
+* **Namespaces**: isolam o que cada processo "enxerga" — cada container tem sua própria visão de rede, processos (PID), sistema de arquivos e hostname, mesmo compartilhando o mesmo kernel.
+* **cgroups (control groups)**: limitam quanto de CPU, memória e I/O cada container pode consumir, evitando que um container "faminto" derrube a máquina inteira.
+
+> 🔎 Não é preciso entrar em detalhes de implementação com a turma — o ponto pedagógico é: **containers são processos isolados, não máquinas**. Isso explica tanto a velocidade de inicialização quanto a "Regra de Ouro da Rede" que veremos na Seção 6.
+
+---
+
+## 4. O Problema: Gerenciamento Imperativo
 
 Antes da orquestração automatizada, subíamos a infraestrutura comando por comando. Esse modelo gera vários problemas:
 
@@ -34,40 +106,154 @@ Antes da orquestração automatizada, subíamos a infraestrutura comando por com
 * **Ordem de Execução:** É difícil garantir que a aplicação web só inicie após o banco de dados estar 100% pronto.
 * **Trabalho Manual:** É praticamente impossível documentar, versionar no Git ou compartilhar a infraestrutura com a equipe de forma simples.
 
-## 3. A Solução: Docker Compose e IaC
+### 😩 Exemplo prático: subindo a mesma stack sem Compose
+
+Para deixar a dor bem concreta, eis o que seria necessário para colocar no ar, **manualmente**, a mesma aplicação Flask + Redis que vamos orquestrar daqui a pouco:
+
+```bash
+# 1. Criar a rede manualmente
+docker network create frontend-net
+
+# 2. Criar o volume para persistência
+docker volume create redis-data
+
+# 3. Subir o Redis, lembrando de conectar na rede e no volume certos
+docker run -d --name redis --network frontend-net -v redis-data:/data redis:7-alpine
+
+# 4. Torcer para o Redis estar pronto a tempo (sem healthcheck, sem garantias)
+sleep 5
+
+# 5. Construir a imagem da aplicação web
+docker build -t laboratorio-web .
+
+# 6. Subir o container web, lembrando de mapear porta, rede e variável de ambiente
+docker run -d --name web --network frontend-net -p 5000:5000 -e REDIS_HOST=redis laboratorio-web
+```
+
+Repare nos problemas: são **6 comandos manuais**, cada um com flags fáceis de esquecer (`--network`, `-v`, `-e`), nenhuma garantia real de que o Redis estará pronto antes do `sleep 5` acabar (em uma máquina sobrecarregada, 5 segundos pode não bastar), e nada disso fica documentado ou versionado — na próxima vez, alguém vai ter que redescobrir essa sequência exata.
+
+É exatamente esse cenário que a função `get_hit_count()` do nosso `app.py` tenta mitigar com suas tentativas (`retries`) — mas depender de *retry* no código para compensar uma orquestração frágil é remendo, não solução.
+
+---
+
+## 5. A Solução: Docker Compose e Infraestrutura como Código (IaC)
 
 A evolução natural na engenharia de sistemas é não dizer *como* o computador deve fazer (passo a passo), mas sim declarar *o que* queremos. Chamamos isso de **Infraestrutura como Código (IaC)**.
 
 Para garantir a máxima compatibilidade com diversos laboratórios e servidores (incluindo o nosso ambiente de testes), utilizaremos o comando tradicional `docker-compose` (com hífen) e o arquivo padrão `docker-compose.yml` declarando a versão da sintaxe.
 
-## 4. Anatomia do Compose YAML
+### Os quatro pilares do IaC
 
-O arquivo `docker-compose.yml` é a "planta baixa" da nossa infraestrutura. Ele define os "prédios" (serviços) que vamos construir:
+Quando declaramos infraestrutura como código, ganhamos quatro propriedades que o modelo imperativo não oferece:
 
-* `version:` Define a versão da sintaxe do arquivo (utilizaremos a `3.8` para garantir suporte a *healthchecks* avançados).
-* `build:` O tijolo. Constrói a imagem localmente a partir de um arquivo `Dockerfile`[cite: 2].
-* `image:` O pré-fabricado. Baixa uma imagem pronta diretamente do Docker Hub[cite: 2].
-* `ports:` O túnel. Mapeia a porta pública do sistema hospedeiro para a porta privada do contêiner[cite: 2].
-* `environment:` Injeção de variáveis de ambiente para alterar configurações sem modificar o código-fonte[cite: 2].
-* `volumes:` O Cofre-Forte. Ancoragem de dados em disco físico, garantindo que informações importantes sobrevivam à destruição do contêiner[cite: 2].
+* **Idempotência**: rodar `docker-compose up` dez vezes seguidas produz o mesmo resultado final — o Compose só recria o que mudou.
+* **Versionamento**: o arquivo `docker-compose.yml` vai para o Git como qualquer outro código-fonte, com histórico completo de mudanças via `git log`.
+* **Reprodutibilidade**: o mesmo arquivo sobe o mesmo ambiente na sua máquina, na do colega e no servidor de produção.
+* **Documentação viva**: o arquivo *é* a documentação. Não existe "documentação desatualizada", porque o arquivo e o comportamento real nunca podem divergir.
 
-> **A Regra de Ouro da Rede:** Nunca decore ou fixe IPs em contêineres. O próprio nome do serviço definido no YAML torna-se o hostname oficial, sendo resolvido automaticamente pelo DNS interno do Docker[cite: 2].
+### 🧭 Nota técnica: `docker-compose` vs. `docker compose`
+
+Você vai notar que usamos o comando com hífen, `docker-compose`, ao longo deste laboratório — é a forma mais compatível com a maior variedade de ambientes e máquinas de laboratório, incluindo o Killercoda. Mas vale registrar o contexto para a turma:
+
+* **Compose V1** (`docker-compose`, com hífen): ferramenta independente escrita em Python. Está oficialmente **descontinuada (end-of-life) desde julho de 2022** — só recebe correções de segurança críticas.
+* **Compose V2** (`docker compose`, sem hífen): reescrita em Go e integrada diretamente à CLI do Docker como um plugin. É o padrão atual e recomendado para qualquer ambiente novo.
+
+Na prática, a maioria das instalações modernas do Docker responde aos dois comandos (o V1 costuma estar "apelidado" para o V2 por trás dos panos). Se o seu ambiente pessoal usar uma instalação recente do Docker, sinta-se à vontade para usar `docker compose` (sem hífen) em vez de `docker-compose` — a sintaxe do arquivo YAML é idêntica.
+
+> 📌 Outra mudança relevante: o campo `version:` no topo do `docker-compose.yml` (que usaremos na Seção 6) é hoje considerado **obsoleto** pela especificação atual do Compose — o Compose V2 ignora esse campo e sempre usa a especificação mais recente. Mantemos `version: '3.8'` neste guia por clareza didática e compatibilidade com ambientes mais antigos, mas não se assuste se, no seu Docker pessoal, aparecer um aviso (*warning*) dizendo que o atributo está obsoleto — é só um aviso, não um erro.
 
 ---
 
-## 5. Ambiente Prático: Killercoda
+## 6. Anatomia do Compose YAML
 
-Para o laboratório de hoje, usaremos uma solução sem fricção: o **Killercoda**[cite: 2].
+O arquivo `docker-compose.yml` é a "planta baixa" da nossa infraestrutura. Ele define os "prédios" (serviços) que vamos construir. Vamos destrinchar cada bloco com mais profundidade do que cabe em um slide:
 
-* Fornece uma VM Ubuntu nativa com sessão de 60 minutos ininterruptos[cite: 2].
+### `version:`
+
+Define a versão da sintaxe do arquivo — utilizaremos a `3.8` para garantir suporte a *healthchecks* avançados no maior número possível de ambientes (veja a nota técnica da Seção 5 sobre sua obsolescência nas versões mais recentes do Compose).
+
+### `build:` vs. `image:`
+
+* **`build: .`** — o tijolo. Compila a imagem **localmente**, a partir do `Dockerfile` presente no diretório indicado (`.` = diretório atual). É o que faremos com o serviço `web`.
+* **`image: redis:7-alpine`** — o pré-fabricado. Baixa uma imagem já pronta do Docker Hub, sem precisar buildar nada. É o que faremos com o serviço `redis`.
+
+Um serviço pode até usar os dois juntos (`build` + `image`): nesse caso, o Compose builda a imagem localmente mas a "marca" (tag) com o nome definido em `image`, facilitando publicá-la depois em um registry.
+
+### `ports:`
+
+O túnel. Mapeia `"porta_do_host:porta_do_container"`. No nosso `web`, `"5000:5000"` significa "quem acessar a porta 5000 da máquina hospedeira cai na porta 5000 dentro do container". Repare que o `redis` só declara `"6379"` (sem a porta do host) — isso expõe uma porta efêmera aleatória ao hospedeiro, já que **ninguém de fora precisa falar com o Redis diretamente**; só o serviço `web` conversa com ele, via rede interna.
+
+### `environment:` e `env_file:`
+
+Injeção de variáveis de ambiente para alterar configurações sem modificar o código-fonte — é assim que `REDIS_HOST=redis` chega até o `os.environ.get('REDIS_HOST', 'redis')` do nosso `app.py`. Para poucas variáveis, `environment:` direto no YAML já é suficiente (nosso caso). Quando a lista cresce — ou quando há segredos, como senhas de banco — o mais comum é externalizar para um arquivo `env_file: .env`, que **nunca deve ser commitado no Git** (adicione-o ao `.gitignore`).
+
+### `volumes:`
+
+O Cofre-Forte. Existem dois tipos, e vale diferenciá-los em aula:
+
+* **Volume nomeado** (o que usaremos: `redis-data:/data`): gerenciado pelo próprio Docker, vive fora do container e sobrevive a um `docker-compose down` sem `-v` — a forma recomendada para dados de banco de dados.
+* **Bind mount** (ex.: `./app:/code`): mapeia uma pasta real do seu hospedeiro diretamente para dentro do container. Muito usado em desenvolvimento, para ver mudanças de código refletidas sem rebuildar a imagem — mas menos portável entre máquinas.
+
+### `networks:`
+
+Isolamento e organização. Serviços na mesma `network:` se enxergam pelo nome; serviços em redes diferentes ficam isolados entre si por padrão — útil, por exemplo, para impedir que um serviço de frontend acesse diretamente um banco de dados que só deveria falar com o backend.
+
+> **A Regra de Ouro da Rede:** Nunca decore ou fixe IPs em contêineres. O próprio nome do serviço definido no YAML torna-se o hostname oficial, sendo resolvido automaticamente pelo DNS interno do Docker.
+
+### `depends_on:` — simples vs. com `condition`
+
+Existe uma pegadinha importante aqui que vale reforçar em aula: `depends_on` **sem** `condition` só garante que o container dependente foi *iniciado* — não que a aplicação dentro dele já está *pronta* para receber conexões. Um banco de dados pode "iniciar" em 200ms e ainda levar alguns segundos para aceitar conexões. É por isso que, no nosso laboratório, usamos a forma estendida:
+
+```yaml
+depends_on:
+  redis:
+    condition: service_healthy
+```
+
+Isso diz ao Compose: "só inicie o `web` depois que o `healthcheck` do `redis` reportar `healthy`" — resolvendo de vez o problema de corrida que vimos na Seção 4.
+
+### `healthcheck:`
+
+O próprio orquestrador roda um comando de teste dentro do container periodicamente para decidir se ele está saudável:
+
+* **`test:`** o comando de verificação (`redis-cli ping`, que responde `PONG` se o Redis estiver operacional).
+* **`interval:`** de quanto em quanto tempo testar (a cada 5s).
+* **`timeout:`** quanto tempo esperar por uma resposta antes de considerar falha (3s).
+* **`retries:`** quantas falhas seguidas até marcar o serviço como `unhealthy` (5).
+
+### `restart:` (bônus — não usado no laboratório, mas essencial em produção)
+
+Define o que o Docker faz se um container cair inesperadamente:
+
+| Valor | Comportamento |
+| :--- | :--- |
+| `no` (padrão) | Nunca reinicia sozinho |
+| `always` | Sempre reinicia, mesmo após reboot da máquina |
+| `on-failure` | Só reinicia se o processo sair com erro (código ≠ 0) |
+| `unless-stopped` | Reinicia sempre, exceto se foi parado manualmente |
+
+### Indo além (mencione — não é necessário no lab de hoje)
+
+* **`profiles:`** marca serviços como "opcionais", que só sobem quando explicitamente ativados (`docker-compose --profile debug up`) — útil para ferramentas de debug que não devem rodar em todo `up`.
+* **`deploy.replicas`** (ou a flag `--scale`) permite rodar múltiplas cópias do mesmo serviço — veremos isso na Seção 10 como ponte para o Kubernetes.
+
+---
+
+## 7. Ambiente Prático: Killercoda
+
+Para o laboratório de hoje, usaremos uma solução sem fricção: o **Killercoda**.
+
+* Fornece uma VM Ubuntu nativa com sessão de 60 minutos ininterruptos.
 * O Docker Engine já vem instalado e pronto para uso.
-* **⚠️ Aviso Crítico:** Nunca pressione `F5` ou recarregue a aba do navegador durante o laboratório. Isso destrói a máquina virtual instantaneamente[cite: 2].
+* **⚠️ Aviso Crítico:** Nunca pressione `F5` ou recarregue a aba do navegador durante o laboratório. Isso destrói a máquina virtual instantaneamente.
 
 👉 **Link de Acesso:** [Ubuntu Playground no Killercoda](https://killercoda.com/playgrounds/scenario/ubuntu)
 
+> 🧪 **Quer praticar depois da aula?** O Killercoda não é a única opção sem instalação local. O [Play with Docker](https://labs.play-with-docker.com/) oferece algo parecido, e muitos templates do GitHub Codespaces já vêm com Docker pré-instalado. Para uso contínuo, o Docker Desktop (Mac/Windows) ou o pacote `docker.io`/`docker-ce` (Linux) resolvem localmente.
+
 ---
 
-## 6. Laboratório Passo a Passo (Hands-on)
+## 8. Laboratório Passo a Passo (Hands-on)
 
 Nosso projeto prático consiste em um Frontend Web (API em Python/Flask) e um Backend (Banco de dados Redis). A aplicação conta o número de visitas e armazena esse dado no banco.
 
@@ -233,24 +419,91 @@ docker-compose down -v
 
 ---
 
-## 7. O Próximo Nível: Escala e Kubernetes
+## 9. Boas Práticas e Erros Comuns
 
-Onde o Compose termina e a escala massiva começa[cite: 2]?
+A aula de hoje usa um exemplo enxuto de propósito, mas ele já segue várias boas práticas de mercado — vale apontar isso durante a explicação. Aqui vai um checklist rápido, útil tanto para revisar o que já fizemos quanto para evitar armadilhas comuns em projetos reais:
 
-* **Docker Compose (Single-Host):** É a ferramenta definitiva para o ciclo de desenvolvimento local, fluxos ágeis de automação de testes (CI/CD) e implantações pontuais em servidores únicos (como arquiteturas enxutas em nuvem)[cite: 2].
-* **Orquestradores de Cluster (Kubernetes / Swarm):** Foram projetados para ambientes de produção massivos, distribuindo a carga entre múltiplos servidores de hardware simultâneos, garantindo balanceamento de carga global e alta disponibilidade corporativa (*auto-healing*)[cite: 2].
-
-A mentalidade declarativa (IaC) e as abstrações de redes, dependências e volumes que praticamos hoje com o Compose são exatamente a mesma base arquitetural exigida para dominar tecnologias como o Kubernetes no seu futuro profissional[cite: 2].
+* ✅ **Fixe (pin) a tag da imagem.** Usamos `redis:7-alpine` e `python:3.10-alpine`, não `redis:latest`. Tags fixas evitam que um `docker-compose up` de amanhã baixe uma versão diferente (e possivelmente quebrada) sem avisar.
+* ✅ **Prefira imagens `alpine`** quando possível — são drasticamente menores, o que acelera build e deploy (atenção: `alpine` usa `musl` em vez de `glibc`, o que raramente pode causar incompatibilidades com certas bibliotecas nativas).
+* 🔒 **Nunca coloque senhas ou chaves de API direto no `environment:`** de um arquivo versionado no Git. Use `env_file: .env` com o `.env` no `.gitignore`, ou um gerenciador de segredos.
+* 🌐 **Não exponha portas que não precisam ser públicas.** Nosso `redis` não mapeia porta fixa para o hospedeiro — só o `web` precisa ser público.
+* 🧹 **Adicione um `.dockerignore`.** Sem ele, o `docker build` pode copiar `.git/`, `node_modules/` ou arquivos de ambiente sensíveis para dentro da imagem sem querer.
+* 🩺 **Defina `healthcheck` em todo serviço do qual outros dependem** — como fizemos com o `redis`. Sem isso, `depends_on` sozinho é uma falsa sensação de segurança.
+* 🗑️ **Rode limpezas periódicas.** Containers parados, imagens intermediárias e redes órfãs se acumulam com o tempo; `docker system prune` (com cautela) resolve.
+* 📝 **Valide antes de subir.** `docker-compose config` renderiza o YAML final (após interpolar variáveis) sem executar nada — ótimo para pegar erros de sintaxe antes de rodar `up`.
 
 ---
 
-## 8. Cheat Sheet (Comandos Úteis)
+## 10. O Próximo Nível: Escala e Kubernetes
+
+Onde o Compose termina e a escala massiva começa?
+
+* **Docker Compose (Single-Host):** É a ferramenta definitiva para o ciclo de desenvolvimento local, fluxos ágeis de automação de testes (CI/CD) e implantações pontuais em servidores únicos (como arquiteturas enxutas em nuvem).
+* **Orquestradores de Cluster (Kubernetes / Swarm):** Foram projetados para ambientes de produção massivos, distribuindo a carga entre múltiplos servidores de hardware simultâneos, garantindo balanceamento de carga global e alta disponibilidade corporativa (*auto-healing*).
+
+### Comparando as três opções
+
+| Critério | Docker Compose | Docker Swarm | Kubernetes |
+| :--- | :--- | :--- | :--- |
+| Hosts suportados | 1 (single-host) | Múltiplos (cluster) | Múltiplos (cluster) |
+| Curva de aprendizado | Baixa | Média | Alta |
+| Auto-healing | ❌ Não | ✅ Sim | ✅ Sim |
+| Auto-scaling | ❌ Manual (`--scale`) | ⚠️ Limitado | ✅ Avançado (HPA) |
+| Load balancing | ❌ Não nativo | ✅ Sim | ✅ Sim (avançado) |
+| Ecossistema/comunidade | Grande | Pequeno | Enorme (padrão de mercado) |
+| Melhor para | Dev local, CI/CD, apps pequenas | Times que já usam Docker e querem simplicidade | Produção em escala, times de plataforma dedicados |
+
+### Quando migrar do Compose?
+
+Alguns sinais de que chegou a hora de considerar um orquestrador de cluster:
+
+* Você precisa distribuir carga entre **mais de um servidor físico**.
+* *Downtime* é inaceitável e você precisa de *failover* automático.
+* O time cresceu e precisa de controles de acesso, quotas e isolamento mais sofisticados (multi-tenancy).
+* Você já está fazendo *scaling* manual com `--scale` com frequência e sente falta de automação.
+
+A mentalidade declarativa (IaC) e as abstrações de redes, dependências e volumes que praticamos hoje com o Compose são exatamente a mesma base arquitetural exigida para dominar tecnologias como o Kubernetes no seu futuro profissional.
+
+---
+
+## 11. Perguntas Frequentes (FAQ)
+
+**O Docker Compose substitui o Dockerfile?**
+Não. São ferramentas complementares. O `Dockerfile` define **como construir uma imagem** (uma receita). O `docker-compose.yml` define **como orquestrar múltiplos containers/serviços** — que podem usar imagens construídas via `Dockerfile` (como nosso `web`) ou baixadas prontas de um registry (como nosso `redis`).
+
+**Por que meus dados sumiram depois de um `docker-compose down`?**
+Provavelmente foi usada a flag `-v` (`docker-compose down -v`), que remove os volumes junto com os containers e redes. Sem `-v`, os volumes nomeados (como o `redis-data`) sobrevivem normalmente — foi exatamente isso que comprovamos no Passo 6 do laboratório.
+
+**Devo usar `docker-compose` ou `docker compose` (sem hífen)?**
+Para qualquer ambiente novo, prefira `docker compose` (sem hífen, Compose V2) — é o padrão atual e mantido ativamente. Usamos a forma com hífen neste guia apenas por compatibilidade ampla com o ambiente do Killercoda (veja a nota técnica na Seção 5).
+
+**Posso rodar várias instâncias do mesmo serviço?**
+Sim: `docker-compose up -d --scale web=3` sobe três instâncias do serviço `web`. Cuidado: se o serviço mapear uma porta fixa do host (como `"5000:5000"`), as instâncias vão brigar pela mesma porta — nesse caso, remova o mapeamento fixo e deixe o Docker escolher portas aleatórias, ou coloque um *load balancer* na frente.
+
+**Se eu editar o `docker-compose.yml` com os containers já rodando, a mudança é aplicada na hora?**
+Não automaticamente. É preciso rodar `docker-compose up -d` de novo — o Compose compara o estado desejado (arquivo) com o estado atual e recria apenas os serviços que mudaram.
+
+**O Compose funciona em produção?**
+Pode funcionar bem para aplicações pequenas ou médias rodando em um único servidor. Para produção crítica, multi-servidor ou de alta disponibilidade, o caminho natural é migrar para Kubernetes ou Docker Swarm (Seção 10).
+
+---
+
+## 12. Cheat Sheet (Comandos Úteis)
 
 | Comando | Descrição |
 | :--- | :--- |
 | `docker-compose up -d` | Sobe todos os serviços em segundo plano (*detached*). |
 | `docker-compose ps` | Lista os contêineres ativos do projeto e seus status. |
 | `docker-compose logs -f` | Exibe e acompanha os logs consolidados em tempo real. |
-| `docker-compose restart <servico>`| Reinicia um serviço específico (ex: `redis`). |
+| `docker-compose logs -f <serviço>` | Acompanha os logs de apenas um serviço específico. |
+| `docker-compose restart <serviço>`| Reinicia um serviço específico (ex: `redis`). |
+| `docker-compose stop` / `start` | Para/inicia os containers sem removê-los (mantém o estado). |
+| `docker-compose exec <serviço> <cmd>` | Executa um comando dentro de um container já rodando (ex: abrir um shell). |
+| `docker-compose build` | Reconstrói as imagens definidas com `build:`, sem subir os containers. |
+| `docker-compose config` | Valida e imprime o YAML final (após interpolação de variáveis). |
+| `docker-compose top` | Mostra os processos em execução dentro de cada container. |
+| `docker-compose up -d --scale <serviço>=N` | Sobe N réplicas de um serviço específico. |
 | `docker-compose down` | Para e remove os contêineres e a rede. |
 | `docker-compose down -v` | Para e remove contêineres, rede e **volumes de dados**. |
+
+> 📚 **Referência oficial:** para ir além do que cabe em 45 minutos, a [documentação oficial do Docker Compose](https://docs.docker.com/compose/) é o melhor próximo passo — está sempre atualizada com a especificação mais recente.
