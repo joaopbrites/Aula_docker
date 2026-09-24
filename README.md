@@ -9,41 +9,21 @@ Este material foi desenhado para levar você dos conceitos fundamentais de isola
 ---
 
 ## 📚 Sumário
-1. [Roteiro Sugerido da Aula (Guia do Instrutor)](#1-roteiro-sugerido-da-aula-guia-do-instrutor)
-2. [Fundamentos: O Fim do "Na minha máquina funciona"](#2-fundamentos-o-fim-do-na-minha-máquina-funciona)
-3. [Containers vs. Máquinas Virtuais: Por Baixo do Capô](#3-containers-vs-máquinas-virtuais-por-baixo-do-capô)
-4. [O Problema: Gerenciamento Imperativo](#4-o-problema-gerenciamento-imperativo)
-5. [A Solução: Docker Compose e Infraestrutura como Código (IaC)](#5-a-solução-docker-compose-e-infraestrutura-como-código-iac)
-6. [Anatomia do Compose YAML](#6-anatomia-do-compose-yaml)
-7. [Ambiente Prático: Killercoda](#7-ambiente-prático-killercoda)
-8. [Laboratório Passo a Passo (Hands-on)](#8-laboratório-passo-a-passo-hands-on)
-9. [Boas Práticas e Erros Comuns](#9-boas-práticas-e-erros-comuns)
-10. [O Próximo Nível: Escala e Kubernetes](#10-o-próximo-nível-escala-e-kubernetes)
-11. [Perguntas Frequentes (FAQ)](#11-perguntas-frequentes-faq)
-12. [Cheat Sheet (Comandos Úteis)](#12-cheat-sheet-comandos-úteis)
+1. [Fundamentos: O Fim do "Na minha máquina funciona"](#2-fundamentos-o-fim-do-na-minha-máquina-funciona)
+2. [Containers vs. Máquinas Virtuais: Por Baixo do Capô](#3-containers-vs-máquinas-virtuais-por-baixo-do-capô)
+3. [O Problema: Gerenciamento Imperativo](#4-o-problema-gerenciamento-imperativo)
+4. [A Solução: Docker Compose e Infraestrutura como Código (IaC)](#5-a-solução-docker-compose-e-infraestrutura-como-código-iac)
+5. [Anatomia do Compose YAML](#6-anatomia-do-compose-yaml)
+6. [Ambiente Prático: Killercoda](#7-ambiente-prático-killercoda)
+7. [Laboratório Passo a Passo (Hands-on)](#8-laboratório-passo-a-passo-hands-on)
+8. [Boas Práticas e Erros Comuns](#9-boas-práticas-e-erros-comuns)
+9. [O Próximo Nível: Escala e Kubernetes](#10-o-próximo-nível-escala-e-kubernetes)
+10. [Perguntas Frequentes (FAQ)](#11-perguntas-frequentes-faq)
+11. [Cheat Sheet (Comandos Úteis)](#12-cheat-sheet-comandos-úteis)
 
 ---
 
-## 1. Roteiro Sugerido da Aula (Guia do Instrutor)
-
-Esta seção é só para você, instrutor(a) — não precisa ser mostrada aos alunos. É um guia de ritmo para garantir que os 45 minutos rendam sem correria no fim.
-
-| Bloco | Tempo | O que fazer | Seção de apoio |
-| :--- | :--- | :--- | :--- |
-| 🎬 Abertura | 0–3 min | Contextualize o problema: "quantos de vocês já ouviram *'na minha máquina funciona'*?" Apresente os objetivos da aula. | Seção 2 |
-| 🧱 Fundamentos | 3–10 min | Containers vs. VMs, arquitetura do Docker, imagens e camadas. Não precisa se aprofundar demais — é só terreno comum. | Seções 2–3 |
-| 😩 O Problema | 10–15 min | Mostre (ou digite ao vivo) os comandos imperativos necessários para subir a mesma aplicação sem Compose. É o momento de gerar empatia com a dor. | Seção 4 |
-| 🧩 A Solução | 15–22 min | Introduza IaC, o Docker Compose e a anatomia do `docker-compose.yml`. | Seções 5–6 |
-| 💻 Mão na Massa | 22–40 min | Todos abrem o Killercoda e seguem o laboratório passo a passo. Circule pela sala (ou pelo chat) tirando dúvidas. | Seções 7–8 |
-| 🚀 Fechamento | 40–45 min | Boas práticas rápidas, panorama de Kubernetes/Swarm e uma rodada de perguntas. | Seções 9–11 |
-
-> 💡 **Dica de ritmo:** se a turma for mais júnior, reduza a parte de "Fundamentos" pela metade e invista o tempo extra no laboratório — é fazendo que o conceito de orquestração realmente gruda. Se a turma já tiver experiência com Docker isolado (sem Compose), pule direto para a Seção 4.
-
-> ⏱️ **Se sobrar tempo:** as Seções 9 (Boas Práticas) e 10 (Kubernetes) têm profundidade suficiente para preencher 10-15 minutos extras sem improviso — e a Seção 11 (FAQ) é ótima para uma rodada final de perguntas guiadas, caso a turma esteja tímida.
-
----
-
-## 2. Fundamentos: O Fim do "Na minha máquina funciona"
+## 1. Fundamentos: O Fim do "Na minha máquina funciona"
 
 No desenvolvimento de software tradicional, configurar laboratórios ou servidores do zero exige instalar dependências complexas. Se você já precisou subir máquinas virtuais completas (com sistemas operacionais inteiros) apenas para rodar um servidor web ou um banco de dados, sabe que o processo consome muito disco, memória e tempo de configuração.
 
@@ -76,7 +56,7 @@ Essa distinção entre "o que é permanente" (imagem, volume) e "o que é descar
 
 ---
 
-## 3. Containers vs. Máquinas Virtuais: Por Baixo do Capô
+## 2. Containers vs. Máquinas Virtuais: Por Baixo do Capô
 
 A pergunta que sempre aparece nesse ponto da aula é: "isso não é só uma VM mais rápida?" Não — a diferença é estrutural, não só de performance.
 
@@ -98,7 +78,7 @@ Dois mecanismos do kernel Linux tornam isso possível, e vale citá-los em aula:
 
 ---
 
-## 4. O Problema: Gerenciamento Imperativo
+## 3. O Problema: Gerenciamento Imperativo
 
 Antes da orquestração automatizada, subíamos a infraestrutura comando por comando. Esse modelo gera vários problemas:
 
@@ -136,7 +116,7 @@ Repare nos problemas: são **6 comandos manuais**, cada um com flags fáceis de 
 
 ---
 
-## 5. A Solução: Docker Compose e Infraestrutura como Código (IaC)
+## 4. A Solução: Docker Compose e Infraestrutura como Código (IaC)
 
 A evolução natural na engenharia de sistemas é não dizer *como* o computador deve fazer (passo a passo), mas sim declarar *o que* queremos. Chamamos isso de **Infraestrutura como Código (IaC)**.
 
@@ -164,7 +144,7 @@ Na prática, a maioria das instalações modernas do Docker responde aos dois co
 
 ---
 
-## 6. Anatomia do Compose YAML
+## 5. Anatomia do Compose YAML
 
 O arquivo `docker-compose.yml` é a "planta baixa" da nossa infraestrutura. Ele define os "prédios" (serviços) que vamos construir. Vamos destrinchar cada bloco com mais profundidade do que cabe em um slide:
 
@@ -239,7 +219,7 @@ Define o que o Docker faz se um container cair inesperadamente:
 
 ---
 
-## 7. Ambiente Prático: Killercoda
+## 6. Ambiente Prático: Killercoda
 
 Para o laboratório de hoje, usaremos uma solução sem fricção: o **Killercoda**.
 
@@ -253,7 +233,7 @@ Para o laboratório de hoje, usaremos uma solução sem fricção: o **Killercod
 
 ---
 
-## 8. Laboratório Passo a Passo (Hands-on)
+## 7. Laboratório Passo a Passo (Hands-on)
 
 Nosso projeto prático consiste em um Frontend Web (API em Python/Flask) e um Backend (Banco de dados Redis). A aplicação conta o número de visitas e armazena esse dado no banco.
 
@@ -375,7 +355,7 @@ EOF
 
 ### Passo 5: Fazendo a Mágica Acontecer
 
-Agora que temos a infraestrutura descrita como código (IaC), podemos levantar todo o ambiente com um único comando declarativo. A *flag* `-d` (detached mode) é utilizada para rodar o processo em segundo plano, liberando o nosso terminal para continuar operando[cite: 1, 2].
+Agora que temos a infraestrutura descrita como código (IaC), podemos levantar todo o ambiente com um único comando declarativo. A *flag* `-d` (detached mode) é utilizada para rodar o processo em segundo plano, liberando o nosso terminal para continuar operando[cite: 1, 2]. A flag -d também previne que em ambientes remotos via ssh ou fechar um terminal sem querer derrube toda a infraestrutura
 
 ```bash
 docker-compose up -d
@@ -387,6 +367,7 @@ Para inspecionar o comportamento da arquitetura em tempo real e visualizar os lo
 docker-compose logs -f
 ```
 *(Para sair da tela de logs em tempo real sem desligar os contêineres, pressione `Ctrl + C`)*.
+A flag -f no comando acima segue os logs em tempo reais, sem elas só seria impresso os logs e atuais e pararia. O docker compose unifica os logs dos conteiners para facilitar o rastreamento de erros. Por exemplo um erro que começa no front-end e estoura no back.
 
 **Testando a Aplicação:**
 No terminal, faça requisições simulando acessos de usuários para ver a contagem subir iterativamente[cite: 1]:
@@ -407,7 +388,7 @@ docker-compose restart redis
 ```bash
 curl http://localhost:5000
 ```
-**Resultado Prático:** O contador continuará exatamente de onde parou! Isso comprova na prática o conceito de **desacoplamento**: a execução (que é volátil e efêmera) foi separada do armazenamento de estado (que está ancorado e seguro no volume `redis-data` do hospedeiro)[cite: 1].
+**Resultado Prático:** O contador continuará exatamente de onde parou! Isso comprova na prática o conceito de **desacoplamento**: a execução (que é volátil e efêmera) foi separada do armazenamento de estado (que está ancorado e seguro no volume `redis-data` do hospedeiro)[cite: 1]. Essa propriedade do redis e a configuração do volume é o que permite classifica-lo como um banco de dados stateful, que é um banco de dados que armazena informações importantes diferente de um stateless onde subir um igual não afetaria o usuário. 
 
 ### Passo 7: Demolição Limpa
 
@@ -419,7 +400,7 @@ docker-compose down -v
 
 ---
 
-## 9. Boas Práticas e Erros Comuns
+## 8. Boas Práticas e Erros Comuns
 
 A aula de hoje usa um exemplo enxuto de propósito, mas ele já segue várias boas práticas de mercado — vale apontar isso durante a explicação. Aqui vai um checklist rápido, útil tanto para revisar o que já fizemos quanto para evitar armadilhas comuns em projetos reais:
 
@@ -434,7 +415,7 @@ A aula de hoje usa um exemplo enxuto de propósito, mas ele já segue várias bo
 
 ---
 
-## 10. O Próximo Nível: Escala e Kubernetes
+## 9. O Próximo Nível: Escala e Kubernetes
 
 Onde o Compose termina e a escala massiva começa?
 
@@ -466,7 +447,7 @@ A mentalidade declarativa (IaC) e as abstrações de redes, dependências e volu
 
 ---
 
-## 11. Perguntas Frequentes (FAQ)
+## 10. Perguntas Frequentes (FAQ)
 
 **O Docker Compose substitui o Dockerfile?**
 Não. São ferramentas complementares. O `Dockerfile` define **como construir uma imagem** (uma receita). O `docker-compose.yml` define **como orquestrar múltiplos containers/serviços** — que podem usar imagens construídas via `Dockerfile` (como nosso `web`) ou baixadas prontas de um registry (como nosso `redis`).
@@ -488,7 +469,7 @@ Pode funcionar bem para aplicações pequenas ou médias rodando em um único se
 
 ---
 
-## 12. Cheat Sheet (Comandos Úteis)
+## 11. Cheat Sheet (Comandos Úteis)
 
 | Comando | Descrição |
 | :--- | :--- |
